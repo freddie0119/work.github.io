@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>智班云 - 智能自动排班管理平台</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,9 +13,16 @@
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: #f8fafc;
+            /* Smooth scrolling for mobile safari */
+            -webkit-overflow-scrolling: touch;
         }
 
         /* Custom Colors & Status Styles according to exact requirement */
@@ -44,10 +51,13 @@
             font-weight: 600;
         }
 
-        /* Custom Excel Table Scrollbars */
+        /* Mobile & Web Table Scrollbars */
+        .excel-scroll {
+            -webkit-overflow-scrolling: touch;
+        }
         .excel-scroll::-webkit-scrollbar {
-            height: 8px;
-            width: 8px;
+            height: 6px;
+            width: 6px;
         }
         .excel-scroll::-webkit-scrollbar-track {
             background: #f1f5f9;
@@ -57,54 +67,59 @@
             background: #cbd5e1;
             border-radius: 6px;
         }
-        .excel-scroll::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* Mobile Container Frame Shadow */
-        .phone-frame {
-            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 12px #0f172a;
-        }
 
         /* Smooth fade-in animation */
         .animate-fade-in {
-            animation: fadeIn 0.25s ease-in-out;
+            animation: fadeIn 0.2s ease-out;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Bottom sheet slide animation for mobile modal */
+        @media (max-width: 640px) {
+            .mobile-bottom-sheet {
+                border-bottom-left-radius: 0 !important;
+                border-bottom-right-radius: 0 !important;
+                animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
         }
     </style>
 </head>
-<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+<body class="min-h-screen text-slate-800 flex flex-col justify-between pb-20 sm:pb-6">
 
     <!-- Top Navigation Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
             
             <!-- Brand Logo -->
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xl shadow-md">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center font-bold text-base sm:text-xl shadow-xs">
                     <i class="fa-solid fa-calendar-check"></i>
                 </div>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="font-bold text-lg text-slate-900 leading-tight">智班云 · 智能自动排班系统</h1>
-                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">Web云端版</span>
+                    <div class="flex items-center space-x-1.5">
+                        <h1 class="font-bold text-base sm:text-lg text-slate-900 leading-tight">智班云</h1>
+                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-indigo-100">自动排班</span>
                     </div>
-                    <p class="text-xs text-slate-500">双人“上一休一”互锁逻辑 · 动态切月 · 支持 Excel 导出</p>
+                    <p class="text-[10px] sm:text-xs text-slate-500 hidden sm:block">双人上一休一互锁 · 动态切月 · 多端适配</p>
                 </div>
             </div>
 
-            <!-- View Switcher Tabs -->
-            <div class="hidden sm:flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-sm font-medium">
-                <button id="btn-tab-excel" onclick="switchMainTab('excel')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm">
+            <!-- Desktop View Switcher Tabs -->
+            <div class="hidden md:flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-sm font-medium">
+                <button id="btn-tab-excel" onclick="switchMainTab('excel')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-xs">
                     <i class="fa-solid fa-table-cells"></i>
-                    <span>排班工作台</span>
+                    <span>表格模式</span>
                 </button>
                 <button id="btn-tab-mobile" onclick="switchMainTab('mobile')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
-                    <i class="fa-solid fa-mobile-screen-button"></i>
-                    <span>手机日历模式</span>
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>日历模式</span>
                 </button>
                 <button id="btn-tab-stats" onclick="switchMainTab('stats')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
                     <i class="fa-solid fa-chart-pie"></i>
@@ -112,34 +127,34 @@
                 </button>
             </div>
 
-            <!-- Quick Export Action -->
+            <!-- Header Quick Actions -->
             <div class="flex items-center space-x-2">
-                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all flex items-center space-x-2 transform active:scale-95">
-                    <i class="fa-solid fa-file-excel text-base"></i>
-                    <span class="hidden sm:inline">导出 Excel 表格</span>
-                    <span class="sm:hidden">导出</span>
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-excel text-sm"></i>
+                    <span>导出 Excel</span>
                 </button>
             </div>
         </div>
     </header>
 
     <!-- Main Content Container -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-12 flex-grow w-full">
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-3 sm:mt-6 mb-6 flex-grow w-full">
 
         <!-- Controls Toolbar Card -->
-        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-6">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="bg-white rounded-2xl p-3.5 sm:p-5 border border-slate-200 shadow-xs mb-4 sm:mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
                 
                 <!-- Date Selector Group -->
-                <div class="flex flex-wrap items-center gap-3">
-                    <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2">
+                <div class="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+                    <!-- Year & Month Pickers -->
+                    <div class="flex items-center space-x-1.5 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm">
                         <i class="fa-regular fa-calendar-days text-indigo-500"></i>
-                        <span class="text-xs font-semibold text-slate-500">排班月份:</span>
-                        <select id="select-year" onchange="onDateChange()" class="bg-transparent font-bold text-slate-800 outline-none cursor-pointer">
+                        <span class="font-semibold text-slate-500 hidden sm:inline">月份:</span>
+                        <select id="select-year" onchange="onDateChange()" class="bg-transparent font-bold text-slate-800 outline-none cursor-pointer py-1">
                             <!-- Populated dynamically -->
                         </select>
                         <span class="text-slate-400 font-bold">年</span>
-                        <select id="select-month" onchange="onDateChange()" class="bg-transparent font-bold text-indigo-600 outline-none cursor-pointer">
+                        <select id="select-month" onchange="onDateChange()" class="bg-transparent font-bold text-indigo-600 outline-none cursor-pointer py-1">
                             <!-- Populated dynamically -->
                         </select>
                         <span class="text-slate-400 font-bold">月</span>
@@ -147,108 +162,113 @@
 
                     <!-- Month Quick Switcher Buttons -->
                     <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
-                        <button onclick="changeMonthRelative(-1)" title="上一月" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors">
+                        <button onclick="changeMonthRelative(-1)" title="上一月" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white active:bg-slate-200 text-slate-600 transition-colors">
                             <i class="fa-solid fa-chevron-left text-xs"></i>
                         </button>
-                        <button onclick="changeMonthRelative(1)" title="下一月" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors">
+                        <button onclick="changeMonthRelative(1)" title="下一月" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white active:bg-slate-200 text-slate-600 transition-colors">
                             <i class="fa-solid fa-chevron-right text-xs"></i>
                         </button>
                     </div>
 
-                    <!-- Smart Auto Generate Button -->
-                    <button onclick="autoGeneratePattern()" class="flex items-center space-x-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow">
-                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
-                        <span>一键生成“上一休一”</span>
-                    </button>
+                    <!-- Quick Operation Buttons (Mobile & Desktop) -->
+                    <div class="flex items-center space-x-2 w-full sm:w-auto mt-1 sm:mt-0">
+                        <button onclick="autoGeneratePattern()" class="flex-1 sm:flex-none justify-center flex items-center space-x-1.5 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-700 border border-indigo-200 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all">
+                            <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+                            <span>一键“上一休一”</span>
+                        </button>
 
-                    <!-- Clear Current Month -->
-                    <button onclick="clearCurrentMonth()" class="flex items-center space-x-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-xl text-sm font-medium transition-colors">
-                        <i class="fa-regular fa-trash-can"></i>
-                        <span>清空本月排班</span>
-                    </button>
+                        <button onclick="clearCurrentMonth()" class="flex-1 sm:flex-none justify-center flex items-center space-x-1.5 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-600 border border-rose-200 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors">
+                            <i class="fa-regular fa-trash-can"></i>
+                            <span>清空本月</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Employee Configuration -->
-                <div class="flex items-center space-x-2 text-xs bg-slate-50 border border-slate-200 p-2 rounded-xl">
-                    <i class="fa-solid fa-user-group text-slate-400"></i>
-                    <span class="text-slate-500 font-semibold">员工设置:</span>
-                    <input type="text" id="input-emp-a" value="员工A" onchange="updateEmployeeNames()" class="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <span class="text-slate-400 font-bold">&</span>
-                    <input type="text" id="input-emp-b" value="员工B" onchange="updateEmployeeNames()" class="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <!-- Employee Custom Names Input Bar -->
+                <div class="flex items-center justify-between sm:justify-start space-x-2 text-xs bg-slate-50 border border-slate-200 p-2 rounded-xl">
+                    <div class="flex items-center space-x-1 text-slate-500 font-semibold shrink-0">
+                        <i class="fa-solid fa-user-group text-slate-400"></i>
+                        <span>员工姓名:</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5 w-full sm:w-auto">
+                        <input type="text" id="input-emp-a" value="员工A" onchange="updateEmployeeNames()" class="w-full sm:w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                        <span class="text-slate-400 font-bold">&</span>
+                        <input type="text" id="input-emp-b" value="员工B" onchange="updateEmployeeNames()" class="w-full sm:w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs">
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Legend & Mutual Rule Banner -->
-        <div class="bg-indigo-900/5 border border-indigo-100 rounded-2xl p-4 mb-6">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="bg-indigo-900/5 border border-indigo-100 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
                 <!-- Color Rules Legend -->
-                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                    <span class="font-bold text-slate-700 mr-1">班别规范:</span>
-                    <div class="px-3 py-1 rounded-lg status-full shadow-sm flex items-center space-x-1">
-                        <span>全班 (粉底红字)</span>
+                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+                    <span class="font-bold text-slate-700 mr-1 hidden sm:inline">班别规范:</span>
+                    <div class="px-2.5 py-1 rounded-lg status-full shadow-xs text-[11px] sm:text-xs">
+                        全班 (粉底红字)
                     </div>
-                    <div class="px-3 py-1 rounded-lg status-off shadow-sm flex items-center space-x-1">
-                        <span>休假 (绿底白字)</span>
+                    <div class="px-2.5 py-1 rounded-lg status-off shadow-xs text-[11px] sm:text-xs">
+                        休假 (绿底白字)
                     </div>
-                    <div class="px-3 py-1 rounded-lg status-leave shadow-sm flex items-center space-x-1">
-                        <span>请假 (黄底橙字)</span>
+                    <div class="px-2.5 py-1 rounded-lg status-leave shadow-xs text-[11px] sm:text-xs">
+                        请假 (黄底橙字)
                     </div>
-                    <div class="px-3 py-1 rounded-lg status-swap shadow-sm flex items-center space-x-1">
-                        <span>调班 (蓝底蓝字)</span>
+                    <div class="px-2.5 py-1 rounded-lg status-swap shadow-xs text-[11px] sm:text-xs">
+                        调班 (蓝底蓝字)
                     </div>
                 </div>
 
                 <!-- Mutual Lock Explanation -->
-                <div class="text-xs text-slate-600 flex items-center space-x-2 bg-white/80 backdrop-blur px-3 py-1.5 rounded-xl border border-indigo-100">
-                    <i class="fa-solid fa-link text-indigo-600"></i>
-                    <span><strong>互锁规则：</strong>选全班/休假自动对偶联动；选请假/调班另一人解锁支持自由选择。</span>
+                <div class="text-[11px] sm:text-xs text-slate-600 flex items-center space-x-1.5 bg-white/80 backdrop-blur px-2.5 py-1.5 rounded-xl border border-indigo-100">
+                    <i class="fa-solid fa-link text-indigo-600 shrink-0"></i>
+                    <span><strong>互锁规则：</strong>选全班/休假自动联动；选请假/调班另一人可自由选择。</span>
                 </div>
             </div>
         </div>
 
         <!-- VIEW 1: EXCEL WORKSPACE VIEW -->
-        <div id="view-excel-container" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8 animate-fade-in">
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <h2 id="excel-table-title" class="font-bold text-slate-800 text-base flex items-center space-x-2">
+        <div id="view-excel-container" class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mb-6 animate-fade-in">
+            <div class="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <h2 id="excel-table-title" class="font-bold text-slate-800 text-sm sm:text-base flex items-center space-x-2">
                         <i class="fa-solid fa-table text-indigo-600"></i>
                         <span>2026年9月 - 月度自动排班表格</span>
                     </h2>
-                    <span class="text-xs bg-slate-200/70 text-slate-600 px-2.5 py-0.5 rounded-full font-medium" id="table-total-days-tag">共 30 天</span>
+                    <span class="text-[10px] sm:text-xs bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-full font-medium" id="table-total-days-tag">共 30 天</span>
                 </div>
-                <div class="text-xs text-slate-400 hidden md:block">
-                    <i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>快捷方式：直接点击表格下拉选项，修改班别实时响应互锁规则
+                <div class="text-xs text-slate-400 hidden lg:block">
+                    <i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>滑动查看整月，下拉即可直接切换班别
                 </div>
             </div>
 
             <!-- Scrollable Table -->
-            <div class="overflow-x-auto excel-scroll">
-                <table class="w-full text-center border-collapse">
+            <div class="overflow-x-auto excel-scroll w-full">
+                <table class="w-full text-center border-collapse min-w-max">
                     <thead>
                         <!-- Row 1: Date Day Numbers -->
                         <tr class="bg-slate-100 text-slate-700 text-xs font-bold border-b border-slate-200">
-                            <th class="p-3 sticky left-0 bg-slate-100 z-20 border-r border-slate-200 min-w-[120px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">日期</th>
+                            <th class="p-2 sm:p-3 sticky left-0 bg-slate-100 z-20 border-r border-slate-200 min-w-[90px] sm:min-w-[110px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">日期</th>
                             <tbody id="header-dates-row"></tbody>
                         </tr>
                         <!-- Row 2: Weekday Names -->
                         <tr class="bg-slate-50 text-slate-500 text-xs font-semibold border-b border-slate-200">
-                            <th class="p-2 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">星期</th>
+                            <th class="p-1.5 sm:p-2 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">星期</th>
                             <tbody id="header-weeks-row"></tbody>
                         </tr>
                     </thead>
-                    <tbody class="text-sm">
+                    <tbody class="text-xs sm:text-sm">
                         <!-- Employee A Row -->
                         <tr class="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
-                            <td class="p-3 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                                <span id="label-emp-a" class="text-indigo-900">员工A</span>
+                            <td class="p-2 sm:p-3 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+                                <span id="label-emp-a" class="text-indigo-900 truncate block max-w-[80px] sm:max-w-none">员工A</span>
                             </td>
                             <tbody id="row-emp-a-cells"></tbody>
                         </tr>
                         <!-- Employee B Row -->
                         <tr class="hover:bg-slate-50/50 transition-colors">
-                            <td class="p-3 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
-                                <span id="label-emp-b" class="text-teal-900">员工B</span>
+                            <td class="p-2 sm:p-3 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+                                <span id="label-emp-b" class="text-teal-900 truncate block max-w-[80px] sm:max-w-none">员工B</span>
                             </td>
                             <tbody id="row-emp-b-cells"></tbody>
                         </tr>
@@ -257,90 +277,85 @@
             </div>
         </div>
 
-        <!-- VIEW 2: MOBILE CALENDAR VIEW -->
-        <div id="view-mobile-container" class="hidden flex justify-center my-6 animate-fade-in">
-            <div class="w-full max-w-md bg-slate-900 rounded-[44px] p-4 phone-frame border-4 border-slate-700 relative">
-                <!-- Phone Screen Header Notch -->
-                <div class="w-32 h-4 bg-slate-800 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <div class="w-10 h-1 bg-slate-700 rounded-full"></div>
-                </div>
-
-                <!-- Inner Phone Screen Area -->
-                <div class="bg-white rounded-[32px] overflow-hidden p-4 min-h-[600px] flex flex-col justify-between">
+        <!-- VIEW 2: FULL MOBILE-RESPONSIVE CALENDAR VIEW -->
+        <div id="view-mobile-container" class="hidden animate-fade-in my-2">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-3.5 sm:p-5">
+                <!-- Mobile Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                     <div>
-                        <!-- Mobile Header -->
-                        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                            <div>
-                                <h3 id="mobile-month-title" class="text-lg font-bold text-slate-900">2026年9月</h3>
-                                <p class="text-[10px] text-slate-400">点击任意日期卡片可修改该日排班</p>
-                            </div>
-                            <span class="text-xs bg-indigo-50 text-indigo-600 font-bold px-2.5 py-1 rounded-full">
-                                手机模式
-                            </span>
-                        </div>
-
-                        <!-- Days of Week Headers -->
-                        <div class="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-2">
-                            <span class="text-rose-500">日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="text-rose-500">六</span>
-                        </div>
-
-                        <!-- Mobile Calendar Days Grid -->
-                        <div id="mobile-calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs">
-                            <!-- Populated dynamically -->
-                        </div>
+                        <h3 id="mobile-month-title" class="text-base sm:text-lg font-bold text-slate-900">2026年9月</h3>
+                        <p class="text-[11px] text-slate-400">点击日期格即可快速修改当天的双人排班</p>
                     </div>
-
-                    <!-- Mobile Bottom Action Info -->
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-center">
-                        <span class="text-[11px] text-slate-400"><i class="fa-solid fa-hand-pointer mr-1"></i>支持轻触快速调整互锁班别</span>
-                    </div>
+                    <span class="text-xs bg-indigo-50 text-indigo-600 font-bold px-2.5 py-1 rounded-full border border-indigo-100">
+                        日历视图
+                    </span>
                 </div>
 
-                <!-- Phone Bottom Home Indicator -->
-                <div class="w-32 h-1 bg-slate-600 rounded-full mx-auto mt-3"></div>
+                <!-- Days of Week Headers -->
+                <div class="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-2">
+                    <span class="text-rose-500 py-1">日</span>
+                    <span class="py-1">一</span>
+                    <span class="py-1">二</span>
+                    <span class="py-1">三</span>
+                    <span class="py-1">四</span>
+                    <span class="py-1">五</span>
+                    <span class="text-rose-500 py-1">六</span>
+                </div>
+
+                <!-- Mobile Calendar Days Grid -->
+                <div id="mobile-calendar-grid" class="grid grid-cols-7 gap-1 sm:gap-2 text-center text-xs">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Calendar Bottom Tip -->
+                <div class="mt-4 pt-3 border-t border-slate-100 text-center">
+                    <span class="text-[11px] text-slate-400"><i class="fa-solid fa-hand-pointer mr-1"></i>直接点击任意天数轻触调整对偶排班</span>
+                </div>
             </div>
         </div>
 
         <!-- VIEW 3: STATISTICAL ANALYTICS DASHBOARD -->
-        <div id="view-stats-container" class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div id="view-stats-container" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                
                 <!-- Emp A Detailed Card -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div class="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-xs">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-lg">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base sm:text-lg">
                                 <i class="fa-solid fa-user"></i>
                             </div>
                             <div>
-                                <h3 id="stats-title-emp-a" class="font-bold text-slate-900 text-base">员工A - 月度考勤</h3>
-                                <p class="text-xs text-slate-400">出勤与休假情况汇总</p>
+                                <h3 id="stats-title-emp-a" class="font-bold text-slate-900 text-sm sm:text-base">员工A - 月度考勤</h3>
+                                <p class="text-[11px] sm:text-xs text-slate-400">出勤与休假情况汇总</p>
                             </div>
                         </div>
-                        <span id="stats-total-days-a" class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-semibold">共 30 天</span>
+                        <span id="stats-total-days-a" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold">共 30 天</span>
                     </div>
 
-                    <div class="grid grid-cols-4 gap-3 text-center mb-6">
-                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
-                            <div id="stat-a-full" class="text-2xl font-bold text-red-600">0</div>
-                            <div class="text-xs text-red-700 font-medium mt-1">全班天数</div>
+                    <!-- Grid layout adapted for mobile (2x2 on mobile, 4x1 on desktop) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center mb-5">
+                        <div class="bg-rose-50 p-2.5 sm:p-3 rounded-xl border border-rose-100">
+                            <div id="stat-a-full" class="text-xl sm:text-2xl font-bold text-rose-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-rose-700 font-medium mt-0.5">全班天数</div>
                         </div>
-                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                            <div id="stat-a-off" class="text-2xl font-bold text-emerald-600">0</div>
-                            <div class="text-xs text-emerald-700 font-medium mt-1">休假天数</div>
+                        <div class="bg-emerald-50 p-2.5 sm:p-3 rounded-xl border border-emerald-100">
+                            <div id="stat-a-off" class="text-xl sm:text-2xl font-bold text-emerald-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-emerald-700 font-medium mt-0.5">休假天数</div>
                         </div>
-                        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
-                            <div id="stat-a-leave" class="text-2xl font-bold text-amber-600">0</div>
-                            <div class="text-xs text-amber-700 font-medium mt-1">请假天数</div>
+                        <div class="bg-amber-50 p-2.5 sm:p-3 rounded-xl border border-amber-100">
+                            <div id="stat-a-leave" class="text-xl sm:text-2xl font-bold text-amber-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-amber-700 font-medium mt-0.5">请假天数</div>
                         </div>
-                        <div class="bg-sky-50 p-3 rounded-xl border border-sky-100">
-                            <div id="stat-a-swap" class="text-2xl font-bold text-sky-600">0</div>
-                            <div class="text-xs text-sky-700 font-medium mt-1">调班天数</div>
+                        <div class="bg-sky-50 p-2.5 sm:p-3 rounded-xl border border-sky-100">
+                            <div id="stat-a-swap" class="text-xl sm:text-2xl font-bold text-sky-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-sky-700 font-medium mt-0.5">调班天数</div>
                         </div>
                     </div>
 
                     <!-- Attendance Progress Bar -->
                     <div>
-                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1.5">
                             <span>全班出勤占比</span>
                             <span id="stat-a-ratio">0%</span>
                         </div>
@@ -354,42 +369,43 @@
                 </div>
 
                 <!-- Emp B Detailed Card -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div class="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-xs">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 mb-4">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-lg">
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-base sm:text-lg">
                                 <i class="fa-solid fa-user"></i>
                             </div>
                             <div>
-                                <h3 id="stats-title-emp-b" class="font-bold text-slate-900 text-base">员工B - 月度考勤</h3>
-                                <p class="text-xs text-slate-400">出勤与休假情况汇总</p>
+                                <h3 id="stats-title-emp-b" class="font-bold text-slate-900 text-sm sm:text-base">员工B - 月度考勤</h3>
+                                <p class="text-[11px] sm:text-xs text-slate-400">出勤与休假情况汇总</p>
                             </div>
                         </div>
-                        <span id="stats-total-days-b" class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-semibold">共 30 天</span>
+                        <span id="stats-total-days-b" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold">共 30 天</span>
                     </div>
 
-                    <div class="grid grid-cols-4 gap-3 text-center mb-6">
-                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
-                            <div id="stat-b-full" class="text-2xl font-bold text-red-600">0</div>
-                            <div class="text-xs text-red-700 font-medium mt-1">全班天数</div>
+                    <!-- Grid layout adapted for mobile (2x2 on mobile, 4x1 on desktop) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 text-center mb-5">
+                        <div class="bg-rose-50 p-2.5 sm:p-3 rounded-xl border border-rose-100">
+                            <div id="stat-b-full" class="text-xl sm:text-2xl font-bold text-rose-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-rose-700 font-medium mt-0.5">全班天数</div>
                         </div>
-                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                            <div id="stat-b-off" class="text-2xl font-bold text-emerald-600">0</div>
-                            <div class="text-xs text-emerald-700 font-medium mt-1">休假天数</div>
+                        <div class="bg-emerald-50 p-2.5 sm:p-3 rounded-xl border border-emerald-100">
+                            <div id="stat-b-off" class="text-xl sm:text-2xl font-bold text-emerald-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-emerald-700 font-medium mt-0.5">休假天数</div>
                         </div>
-                        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
-                            <div id="stat-b-leave" class="text-2xl font-bold text-amber-600">0</div>
-                            <div class="text-xs text-amber-700 font-medium mt-1">请假天数</div>
+                        <div class="bg-amber-50 p-2.5 sm:p-3 rounded-xl border border-amber-100">
+                            <div id="stat-b-leave" class="text-xl sm:text-2xl font-bold text-amber-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-amber-700 font-medium mt-0.5">请假天数</div>
                         </div>
-                        <div class="bg-sky-50 p-3 rounded-xl border border-sky-100">
-                            <div id="stat-b-swap" class="text-2xl font-bold text-sky-600">0</div>
-                            <div class="text-xs text-sky-700 font-medium mt-1">调班天数</div>
+                        <div class="bg-sky-50 p-2.5 sm:p-3 rounded-xl border border-sky-100">
+                            <div id="stat-b-swap" class="text-xl sm:text-2xl font-bold text-sky-600">0</div>
+                            <div class="text-[11px] sm:text-xs text-sky-700 font-medium mt-0.5">调班天数</div>
                         </div>
                     </div>
 
                     <!-- Attendance Progress Bar -->
                     <div>
-                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1.5">
                             <span>全班出勤占比</span>
                             <span id="stat-b-ratio">0%</span>
                         </div>
@@ -407,15 +423,35 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
-        <p>智班云 智能自动排班管理平台 &copy; 2026. 保留所有权利。</p>
+    <footer class="bg-white border-t border-slate-200 py-4 sm:py-6 text-center text-xs text-slate-400">
+        <p>智班云 智能自动排班管理平台 &copy; 2026</p>
     </footer>
 
-    <!-- Modal Dialog for Editing Day Shift (Mobile Calendar View) -->
-    <div id="modal-edit-day" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 animate-fade-in">
+    <!-- MOBILE FIXED BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 md:hidden px-2 py-1.5 flex justify-around items-center text-[10px]">
+        <button id="m-nav-excel" onclick="switchMainTab('excel')" class="flex flex-col items-center py-1 px-3 text-indigo-600 font-bold">
+            <i class="fa-solid fa-table-cells text-base mb-0.5"></i>
+            <span>表格工作台</span>
+        </button>
+        <button id="m-nav-mobile" onclick="switchMainTab('mobile')" class="flex flex-col items-center py-1 px-3 text-slate-500 font-medium">
+            <i class="fa-solid fa-calendar-days text-base mb-0.5"></i>
+            <span>日历模式</span>
+        </button>
+        <button id="m-nav-stats" onclick="switchMainTab('stats')" class="flex flex-col items-center py-1 px-3 text-slate-500 font-medium">
+            <i class="fa-solid fa-chart-pie text-base mb-0.5"></i>
+            <span>考勤统计</span>
+        </button>
+        <button onclick="exportToExcel()" class="flex flex-col items-center py-1 px-3 text-emerald-600 font-medium">
+            <i class="fa-solid fa-file-excel text-base mb-0.5"></i>
+            <span>导出Excel</span>
+        </button>
+    </nav>
+
+    <!-- Modal Dialog for Editing Day Shift (Mobile & Desktop) -->
+    <div id="modal-edit-day" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center hidden p-0 sm:p-4">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-sm w-full shadow-2xl border border-slate-100 mobile-bottom-sheet">
             <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-                <h3 id="modal-date-title" class="font-bold text-lg text-slate-800">调整排班</h3>
+                <h3 id="modal-date-title" class="font-bold text-base sm:text-lg text-slate-800">调整排班</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
@@ -424,8 +460,8 @@
             <div class="space-y-4">
                 <!-- Employee A Choice -->
                 <div>
-                    <label id="modal-label-emp-a" class="block text-xs font-bold text-slate-600 mb-1">员工A 班别</label>
-                    <select id="modal-select-emp-a" onchange="onModalChange('A')" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <label id="modal-label-emp-a" class="block text-xs font-bold text-slate-600 mb-1.5">员工A 班别</label>
+                    <select id="modal-select-emp-a" onchange="onModalChange('A')" class="w-full p-3 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50">
                         <option value="全班">全班 (粉底红字)</option>
                         <option value="休假">休假 (绿底白字)</option>
                         <option value="请假">请假 (黄底橙字)</option>
@@ -436,8 +472,8 @@
 
                 <!-- Employee B Choice -->
                 <div>
-                    <label id="modal-label-emp-b" class="block text-xs font-bold text-slate-600 mb-1">员工B 班别</label>
-                    <select id="modal-select-emp-b" onchange="onModalChange('B')" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <label id="modal-label-emp-b" class="block text-xs font-bold text-slate-600 mb-1.5">员工B 班别</label>
+                    <select id="modal-select-emp-b" onchange="onModalChange('B')" class="w-full p-3 rounded-xl border border-slate-300 font-bold text-slate-800 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50">
                         <option value="全班">全班 (粉底红字)</option>
                         <option value="休假">休假 (绿底白字)</option>
                         <option value="请假">请假 (黄底橙字)</option>
@@ -446,21 +482,21 @@
                     </select>
                 </div>
 
-                <div class="p-3 bg-indigo-50/60 rounded-xl text-xs text-indigo-700 leading-relaxed border border-indigo-100">
-                    💡 <strong>提示：</strong>选择全班/休假时，系统会自动联动对偶状态。选择请假/调班时解锁自由选择。
+                <div class="p-3 bg-indigo-50/70 rounded-xl text-xs text-indigo-700 leading-relaxed border border-indigo-100">
+                    💡 <strong>提示：</strong>选择全班/休假时，系统自动对偶联动。选择请假/调班时解除锁定供手动选择。
                 </div>
             </div>
 
-            <div class="mt-6">
-                <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors">
-                    确定保存
+            <div class="mt-5 sm:mt-6">
+                <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-xl shadow-md transition-colors text-sm">
+                    完成保存
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Custom Toast Notification Box -->
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-6 z-50 flex flex-col space-y-2 pointer-events-none w-11/12 max-w-xs"></div>
 
     <script>
         // Global Application State
@@ -488,7 +524,7 @@
             loadFromLocalStorage();
             initYearMonthDropdowns();
             renderAllViews();
-            showToast("智班云系统准备就绪", "success");
+            showToast("智班云系统加载完毕", "success");
         });
 
         // Initialize Year & Month Dropdowns
@@ -536,9 +572,9 @@
 
         /**
          * Core Mutual Constraint Logic:
-         * - If target worker selects "全班" -> counterpart becomes "休假"
-         * - If target worker selects "休假" -> counterpart becomes "全班"
-         * - If target worker selects "请假" or "调班" -> counterpart remains unchanged (unlocked for manual selection)
+         * - Target Worker = "全班" -> Counterpart = "休假"
+         * - Target Worker = "休假" -> Counterpart = "全班"
+         * - Target Worker = "请假" or "调班" -> Counterpart remains unchanged (unlocked)
          */
         function handleShiftChange(day, targetWorker, newValue) {
             const monthData = getActiveMonthData();
@@ -553,7 +589,6 @@
                 } else if (newValue === '休假') {
                     monthData[day].empB = '全班';
                 }
-                // '请假' or '调班' -> empB remains unlocked
             } else if (targetWorker === 'B') {
                 monthData[day].empB = newValue;
                 if (newValue === '全班') {
@@ -561,7 +596,6 @@
                 } else if (newValue === '休假') {
                     monthData[day].empA = '全班';
                 }
-                // '请假' or '调班' -> empA remains unlocked
             }
 
             saveToLocalStorage();
@@ -584,7 +618,7 @@
             scheduleStore[getMonthKey()] = monthData;
             saveToLocalStorage();
             renderAllViews();
-            showToast(`已自动填充 ${currentYear}年${currentMonth}月 上一休一轮班方案`, "info");
+            showToast(`已生成 ${currentYear}年${currentMonth}月 “上一休一”轮班`, "info");
         }
 
         // Clear Current Selected Month
@@ -592,7 +626,7 @@
             scheduleStore[getMonthKey()] = {};
             saveToLocalStorage();
             renderAllViews();
-            showToast(`已清空 ${currentYear}年${currentMonth}月 的排班数据`, "warning");
+            showToast(`已清空 ${currentYear}年${currentMonth}月 排班数据`, "warning");
         }
 
         // Date dropdown change
@@ -629,13 +663,13 @@
 
             document.getElementById('label-emp-a').textContent = empAName;
             document.getElementById('label-emp-b').textContent = empBName;
-            document.getElementById('stats-title-emp-a').textContent = `${empAName} - 月度考勤汇总`;
-            document.getElementById('stats-title-emp-b').textContent = `${empBName} - 月度考勤汇总`;
+            document.getElementById('stats-title-emp-a').textContent = `${empAName} - 月度考勤`;
+            document.getElementById('stats-title-emp-b').textContent = `${empBName} - 月度考勤`;
             document.getElementById('modal-label-emp-a').textContent = `${empAName} 班别`;
             document.getElementById('modal-label-emp-b').textContent = `${empBName} 班别`;
 
             renderAllViews();
-            showToast("员工姓名更新成功", "success");
+            showToast("员工姓名已更新", "success");
         }
 
         // Main View Rendering Pipeline
@@ -646,7 +680,7 @@
             // Dynamic Header Updates
             document.getElementById('excel-table-title').innerHTML = `
                 <i class="fa-solid fa-table text-indigo-600"></i>
-                <span>${currentYear}年${currentMonth}月 - 月度排班明细</span>
+                <span>${currentYear}年${currentMonth}月 - 排班表</span>
             `;
             document.getElementById('table-total-days-tag').textContent = `共 ${daysCount} 天`;
             document.getElementById('mobile-month-title').textContent = `${currentYear}年${currentMonth}月`;
@@ -677,8 +711,8 @@
                 // Weekend highlight
                 const weekendStyle = isWeekend ? 'bg-amber-50 text-amber-700 font-bold' : '';
 
-                datesHtml += `<th class="p-2 border-r border-slate-200 min-w-[70px] ${weekendStyle}">${d}</th>`;
-                weeksHtml += `<th class="p-1 border-r border-slate-200 min-w-[70px] ${weekendStyle}">${weekText}</th>`;
+                datesHtml += `<th class="p-2 sm:p-2.5 border-r border-slate-200 min-w-[62px] sm:min-w-[70px] ${weekendStyle}">${d}</th>`;
+                weeksHtml += `<th class="p-1 sm:p-1.5 border-r border-slate-200 min-w-[62px] sm:min-w-[70px] ${weekendStyle}">${weekText}</th>`;
 
                 const dayRecord = monthData[d] || { empA: '', empB: '' };
                 const valA = dayRecord.empA || '';
@@ -688,8 +722,8 @@
                 const classB = SHIFT_CLASSES[valB] || '';
 
                 empAHtml += `
-                    <td class="p-1.5 border-r border-slate-200">
-                        <select onchange="handleShiftChange(${d}, 'A', this.value)" class="w-full px-1 py-1.5 rounded-lg text-xs text-center font-bold outline-none cursor-pointer transition-all ${classA}">
+                    <td class="p-1 sm:p-1.5 border-r border-slate-200">
+                        <select onchange="handleShiftChange(${d}, 'A', this.value)" class="w-full px-1 py-1.5 sm:py-2 rounded-lg text-xs text-center font-bold outline-none cursor-pointer transition-all ${classA}">
                             <option value="" ${valA === '' ? 'selected' : ''}>未安排</option>
                             <option value="全班" ${valA === '全班' ? 'selected' : ''}>全班</option>
                             <option value="休假" ${valA === '休假' ? 'selected' : ''}>休假</option>
@@ -700,8 +734,8 @@
                 `;
 
                 empBHtml += `
-                    <td class="p-1.5 border-r border-slate-200">
-                        <select onchange="handleShiftChange(${d}, 'B', this.value)" class="w-full px-1 py-1.5 rounded-lg text-xs text-center font-bold outline-none cursor-pointer transition-all ${classB}">
+                    <td class="p-1 sm:p-1.5 border-r border-slate-200">
+                        <select onchange="handleShiftChange(${d}, 'B', this.value)" class="w-full px-1 py-1.5 sm:py-2 rounded-lg text-xs text-center font-bold outline-none cursor-pointer transition-all ${classB}">
                             <option value="" ${valB === '' ? 'selected' : ''}>未安排</option>
                             <option value="全班" ${valB === '全班' ? 'selected' : ''}>全班</option>
                             <option value="休假" ${valB === '休假' ? 'selected' : ''}>休假</option>
@@ -718,7 +752,7 @@
             rowEmpB.innerHTML = empBHtml;
         }
 
-        // 2. Render Mobile Phone Calendar Grid View
+        // 2. Render Full Responsive Calendar Grid View
         function renderMobileCalendar(daysCount, monthData) {
             const gridContainer = document.getElementById('mobile-calendar-grid');
             gridContainer.innerHTML = '';
@@ -728,7 +762,7 @@
             // Offset empty slots for 1st of month
             for (let i = 0; i < firstDayOfWeek; i++) {
                 const emptyCell = document.createElement('div');
-                emptyCell.className = 'h-16 bg-slate-50/50 rounded-xl';
+                emptyCell.className = 'min-h-[58px] sm:min-h-[72px] bg-slate-50/40 rounded-xl';
                 gridContainer.appendChild(emptyCell);
             }
 
@@ -739,19 +773,19 @@
                 const valB = dayRecord.empB || '';
 
                 const cell = document.createElement('div');
-                cell.className = 'h-16 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 rounded-xl p-1 flex flex-col justify-between cursor-pointer transition-all transform hover:scale-95 shadow-2xs';
+                cell.className = 'min-h-[58px] sm:min-h-[72px] bg-slate-50 hover:bg-indigo-50/50 active:bg-indigo-100/50 border border-slate-200 rounded-xl p-1 sm:p-1.5 flex flex-col justify-between cursor-pointer transition-all transform active:scale-95 shadow-2xs';
                 cell.onclick = () => openModal(d);
 
-                const classA = valA ? SHIFT_CLASSES[valA] : 'bg-slate-200 text-slate-400';
-                const classB = valB ? SHIFT_CLASSES[valB] : 'bg-slate-200 text-slate-400';
+                const classA = valA ? SHIFT_CLASSES[valA] : 'bg-slate-200/70 text-slate-400';
+                const classB = valB ? SHIFT_CLASSES[valB] : 'bg-slate-200/70 text-slate-400';
 
                 cell.innerHTML = `
-                    <div class="text-[10px] font-bold text-slate-600 text-left pl-0.5">${d}</div>
-                    <div class="space-y-0.5">
-                        <div class="text-[9px] px-1 py-0.5 rounded ${classA} truncate scale-90 origin-left">
+                    <div class="text-[10px] sm:text-xs font-bold text-slate-600 text-left pl-0.5">${d}</div>
+                    <div class="space-y-0.5 sm:space-y-1">
+                        <div class="text-[9px] sm:text-[10px] px-1 py-0.5 rounded ${classA} truncate text-center leading-tight">
                             ${empAName.substring(0, 2)}:${valA || '未'}
                         </div>
-                        <div class="text-[9px] px-1 py-0.5 rounded ${classB} truncate scale-90 origin-left">
+                        <div class="text-[9px] sm:text-[10px] px-1 py-0.5 rounded ${classB} truncate text-center leading-tight">
                             ${empBName.substring(0, 2)}:${valB || '未'}
                         </div>
                     </div>
@@ -815,6 +849,10 @@
             const btnMobile = document.getElementById('btn-tab-mobile');
             const btnStats = document.getElementById('btn-tab-stats');
 
+            const mNavExcel = document.getElementById('m-nav-excel');
+            const mNavMobile = document.getElementById('m-nav-mobile');
+            const mNavStats = document.getElementById('m-nav-stats');
+
             vExcel.classList.add('hidden');
             vMobile.classList.add('hidden');
             vStats.classList.add('hidden');
@@ -823,16 +861,25 @@
             btnMobile.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900';
             btnStats.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900';
 
+            mNavExcel.className = 'flex flex-col items-center py-1 px-3 text-slate-500 font-medium';
+            mNavMobile.className = 'flex flex-col items-center py-1 px-3 text-slate-500 font-medium';
+            mNavStats.className = 'flex flex-col items-center py-1 px-3 text-slate-500 font-medium';
+
             if (tabName === 'excel') {
                 vExcel.classList.remove('hidden');
-                btnExcel.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm font-bold';
+                btnExcel.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-xs font-bold';
+                mNavExcel.className = 'flex flex-col items-center py-1 px-3 text-indigo-600 font-bold';
             } else if (tabName === 'mobile') {
                 vMobile.classList.remove('hidden');
-                btnMobile.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm font-bold';
+                btnMobile.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-xs font-bold';
+                mNavMobile.className = 'flex flex-col items-center py-1 px-3 text-indigo-600 font-bold';
             } else if (tabName === 'stats') {
                 vStats.classList.remove('hidden');
-                btnStats.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm font-bold';
+                btnStats.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-xs font-bold';
+                mNavStats.className = 'flex flex-col items-center py-1 px-3 text-indigo-600 font-bold';
             }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // Modal Edit Dialog for Mobile Calendar
@@ -917,7 +964,7 @@
 
             const fileName = `自动排班表_${currentYear}年${currentMonth}月.xlsx`;
             XLSX.writeFile(wb, fileName);
-            showToast(`已成功导出 ${fileName}！`, "success");
+            showToast(`已成功导出 ${fileName}`, "success");
         }
 
         // LocalStorage Operations
@@ -960,16 +1007,16 @@
                 icon = "fa-circle-info";
             }
 
-            toast.className = `${typeStyle} px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-semibold animate-fade-in pointer-events-auto`;
+            toast.className = `${typeStyle} px-3.5 py-2.5 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-semibold animate-fade-in pointer-events-auto`;
             toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
 
             toastContainer.appendChild(toast);
 
             setTimeout(() => {
                 toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.3s ease';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+                toast.style.transition = 'opacity 0.25s ease';
+                setTimeout(() => toast.remove(), 250);
+            }, 2500);
         }
     </script>
 </body>
