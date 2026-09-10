@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智班云 - 智能自动排班管理平台</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (XLSX) for Real Excel File Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* Custom Colors & Status Styles according to exact requirement */
+        .status-full {
+            background-color: #ffe4e6 !important; /* Soft Pink Background */
+            color: #e11d48 !important; /* Bold Red Font */
+            border: 1px solid #fecdd3;
+            font-weight: 600;
+        }
+        .status-off {
+            background-color: #10b981 !important; /* Vivid Emerald Green */
+            color: #ffffff !important; /* Clean White Font */
+            border: 1px solid #059669;
+            font-weight: 600;
+        }
+        .status-leave {
+            background-color: #fff3e0 !important; /* Soft Yellow/Orange */
+            color: #e65100 !important; /* Orange Font */
+            border: 1px solid #ffe0b2;
+            font-weight: 600;
+        }
+        .status-swap {
+            background-color: #e0f2fe !important; /* Soft Blue */
+            color: #0284c7 !important; /* Dark Blue Font */
+            border: 1px solid #bae6fd;
+            font-weight: 600;
+        }
+
+        /* Custom Excel Table Scrollbars */
+        .excel-scroll::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .excel-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 6px;
+        }
+        .excel-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 6px;
+        }
+        .excel-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Mobile Container Frame Shadow */
+        .phone-frame {
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 12px #0f172a;
+        }
+
+        /* Smooth fade-in animation */
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xl shadow-md">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="font-bold text-lg text-slate-900 leading-tight">智班云 · 智能自动排班系统</h1>
+                        <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-100">Web云端版</span>
+                    </div>
+                    <p class="text-xs text-slate-500">双人“上一休一”互锁逻辑 · 动态切月 · 支持 Excel 导出</p>
+                </div>
+            </div>
+
+            <!-- View Switcher Tabs -->
+            <div class="hidden sm:flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-sm font-medium">
+                <button id="btn-tab-excel" onclick="switchMainTab('excel')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>排班工作台</span>
+                </button>
+                <button id="btn-tab-mobile" onclick="switchMainTab('mobile')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                    <span>手机日历模式</span>
+                </button>
+                <button id="btn-tab-stats" onclick="switchMainTab('stats')" class="flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>考勤统计</span>
+                </button>
+            </div>
+
+            <!-- Quick Export Action -->
+            <div class="flex items-center space-x-2">
+                <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all flex items-center space-x-2 transform active:scale-95">
+                    <i class="fa-solid fa-file-excel text-base"></i>
+                    <span class="hidden sm:inline">导出 Excel 表格</span>
+                    <span class="sm:hidden">导出</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-12 flex-grow w-full">
+
+        <!-- Controls Toolbar Card -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                
+                <!-- Date Selector Group -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center space-x-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2">
+                        <i class="fa-regular fa-calendar-days text-indigo-500"></i>
+                        <span class="text-xs font-semibold text-slate-500">排班月份:</span>
+                        <select id="select-year" onchange="onDateChange()" class="bg-transparent font-bold text-slate-800 outline-none cursor-pointer">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <span class="text-slate-400 font-bold">年</span>
+                        <select id="select-month" onchange="onDateChange()" class="bg-transparent font-bold text-indigo-600 outline-none cursor-pointer">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <span class="text-slate-400 font-bold">月</span>
+                    </div>
+
+                    <!-- Month Quick Switcher Buttons -->
+                    <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl">
+                        <button onclick="changeMonthRelative(-1)" title="上一月" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors">
+                            <i class="fa-solid fa-chevron-left text-xs"></i>
+                        </button>
+                        <button onclick="changeMonthRelative(1)" title="下一月" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Smart Auto Generate Button -->
+                    <button onclick="autoGeneratePattern()" class="flex items-center space-x-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow">
+                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+                        <span>一键生成“上一休一”</span>
+                    </button>
+
+                    <!-- Clear Current Month -->
+                    <button onclick="clearCurrentMonth()" class="flex items-center space-x-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-2 rounded-xl text-sm font-medium transition-colors">
+                        <i class="fa-regular fa-trash-can"></i>
+                        <span>清空本月排班</span>
+                    </button>
+                </div>
+
+                <!-- Employee Configuration -->
+                <div class="flex items-center space-x-2 text-xs bg-slate-50 border border-slate-200 p-2 rounded-xl">
+                    <i class="fa-solid fa-user-group text-slate-400"></i>
+                    <span class="text-slate-500 font-semibold">员工设置:</span>
+                    <input type="text" id="input-emp-a" value="员工A" onchange="updateEmployeeNames()" class="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <span class="text-slate-400 font-bold">&</span>
+                    <input type="text" id="input-emp-b" value="员工B" onchange="updateEmployeeNames()" class="w-20 px-2 py-1 bg-white border border-slate-300 rounded-lg text-center text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend & Mutual Rule Banner -->
+        <div class="bg-indigo-900/5 border border-indigo-100 rounded-2xl p-4 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <!-- Color Rules Legend -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <span class="font-bold text-slate-700 mr-1">班别规范:</span>
+                    <div class="px-3 py-1 rounded-lg status-full shadow-sm flex items-center space-x-1">
+                        <span>全班 (粉底红字)</span>
+                    </div>
+                    <div class="px-3 py-1 rounded-lg status-off shadow-sm flex items-center space-x-1">
+                        <span>休假 (绿底白字)</span>
+                    </div>
+                    <div class="px-3 py-1 rounded-lg status-leave shadow-sm flex items-center space-x-1">
+                        <span>请假 (黄底橙字)</span>
+                    </div>
+                    <div class="px-3 py-1 rounded-lg status-swap shadow-sm flex items-center space-x-1">
+                        <span>调班 (蓝底蓝字)</span>
+                    </div>
+                </div>
+
+                <!-- Mutual Lock Explanation -->
+                <div class="text-xs text-slate-600 flex items-center space-x-2 bg-white/80 backdrop-blur px-3 py-1.5 rounded-xl border border-indigo-100">
+                    <i class="fa-solid fa-link text-indigo-600"></i>
+                    <span><strong>互锁规则：</strong>选全班/休假自动对偶联动；选请假/调班另一人解锁支持自由选择。</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 1: EXCEL WORKSPACE VIEW -->
+        <div id="view-excel-container" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8 animate-fade-in">
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <h2 id="excel-table-title" class="font-bold text-slate-800 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-table text-indigo-600"></i>
+                        <span>2026年9月 - 月度自动排班表格</span>
+                    </h2>
+                    <span class="text-xs bg-slate-200/70 text-slate-600 px-2.5 py-0.5 rounded-full font-medium" id="table-total-days-tag">共 30 天</span>
+                </div>
+                <div class="text-xs text-slate-400 hidden md:block">
+                    <i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>快捷方式：直接点击表格下拉选项，修改班别实时响应互锁规则
+                </div>
+            </div>
+
+            <!-- Scrollable Table -->
+            <div class="overflow-x-auto excel-scroll">
+                <table class="w-full text-center border-collapse">
+                    <thead>
+                        <!-- Row 1: Date Day Numbers -->
+                        <tr class="bg-slate-100 text-slate-700 text-xs font-bold border-b border-slate-200">
+                            <th class="p-3 sticky left-0 bg-slate-100 z-20 border-r border-slate-200 min-w-[120px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">日期</th>
+                            <tbody id="header-dates-row"></tbody>
+                        </tr>
+                        <!-- Row 2: Weekday Names -->
+                        <tr class="bg-slate-50 text-slate-500 text-xs font-semibold border-b border-slate-200">
+                            <th class="p-2 sticky left-0 bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">星期</th>
+                            <tbody id="header-weeks-row"></tbody>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        <!-- Employee A Row -->
+                        <tr class="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
+                            <td class="p-3 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                <span id="label-emp-a" class="text-indigo-900">员工A</span>
+                            </td>
+                            <tbody id="row-emp-a-cells"></tbody>
+                        </tr>
+                        <!-- Employee B Row -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="p-3 font-bold text-slate-800 sticky left-0 bg-white z-10 border-r border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                <span id="label-emp-b" class="text-teal-900">员工B</span>
+                            </td>
+                            <tbody id="row-emp-b-cells"></tbody>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- VIEW 2: MOBILE CALENDAR VIEW -->
+        <div id="view-mobile-container" class="hidden flex justify-center my-6 animate-fade-in">
+            <div class="w-full max-w-md bg-slate-900 rounded-[44px] p-4 phone-frame border-4 border-slate-700 relative">
+                <!-- Phone Screen Header Notch -->
+                <div class="w-32 h-4 bg-slate-800 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <div class="w-10 h-1 bg-slate-700 rounded-full"></div>
+                </div>
+
+                <!-- Inner Phone Screen Area -->
+                <div class="bg-white rounded-[32px] overflow-hidden p-4 min-h-[600px] flex flex-col justify-between">
+                    <div>
+                        <!-- Mobile Header -->
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                            <div>
+                                <h3 id="mobile-month-title" class="text-lg font-bold text-slate-900">2026年9月</h3>
+                                <p class="text-[10px] text-slate-400">点击任意日期卡片可修改该日排班</p>
+                            </div>
+                            <span class="text-xs bg-indigo-50 text-indigo-600 font-bold px-2.5 py-1 rounded-full">
+                                手机模式
+                            </span>
+                        </div>
+
+                        <!-- Days of Week Headers -->
+                        <div class="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-2">
+                            <span class="text-rose-500">日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="text-rose-500">六</span>
+                        </div>
+
+                        <!-- Mobile Calendar Days Grid -->
+                        <div id="mobile-calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Mobile Bottom Action Info -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-center">
+                        <span class="text-[11px] text-slate-400"><i class="fa-solid fa-hand-pointer mr-1"></i>支持轻触快速调整互锁班别</span>
+                    </div>
+                </div>
+
+                <!-- Phone Bottom Home Indicator -->
+                <div class="w-32 h-1 bg-slate-600 rounded-full mx-auto mt-3"></div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: STATISTICAL ANALYTICS DASHBOARD -->
+        <div id="view-stats-container" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Emp A Detailed Card -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-lg">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <div>
+                                <h3 id="stats-title-emp-a" class="font-bold text-slate-900 text-base">员工A - 月度考勤</h3>
+                                <p class="text-xs text-slate-400">出勤与休假情况汇总</p>
+                            </div>
+                        </div>
+                        <span id="stats-total-days-a" class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-semibold">共 30 天</span>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3 text-center mb-6">
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
+                            <div id="stat-a-full" class="text-2xl font-bold text-red-600">0</div>
+                            <div class="text-xs text-red-700 font-medium mt-1">全班天数</div>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <div id="stat-a-off" class="text-2xl font-bold text-emerald-600">0</div>
+                            <div class="text-xs text-emerald-700 font-medium mt-1">休假天数</div>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                            <div id="stat-a-leave" class="text-2xl font-bold text-amber-600">0</div>
+                            <div class="text-xs text-amber-700 font-medium mt-1">请假天数</div>
+                        </div>
+                        <div class="bg-sky-50 p-3 rounded-xl border border-sky-100">
+                            <div id="stat-a-swap" class="text-2xl font-bold text-sky-600">0</div>
+                            <div class="text-xs text-sky-700 font-medium mt-1">调班天数</div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Progress Bar -->
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+                            <span>全班出勤占比</span>
+                            <span id="stat-a-ratio">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex">
+                            <div id="progress-a-full" class="bg-rose-500 h-full" style="width: 0%"></div>
+                            <div id="progress-a-off" class="bg-emerald-500 h-full" style="width: 0%"></div>
+                            <div id="progress-a-leave" class="bg-amber-500 h-full" style="width: 0%"></div>
+                            <div id="progress-a-swap" class="bg-sky-500 h-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emp B Detailed Card -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-lg">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <div>
+                                <h3 id="stats-title-emp-b" class="font-bold text-slate-900 text-base">员工B - 月度考勤</h3>
+                                <p class="text-xs text-slate-400">出勤与休假情况汇总</p>
+                            </div>
+                        </div>
+                        <span id="stats-total-days-b" class="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full font-semibold">共 30 天</span>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3 text-center mb-6">
+                        <div class="bg-red-50 p-3 rounded-xl border border-red-100">
+                            <div id="stat-b-full" class="text-2xl font-bold text-red-600">0</div>
+                            <div class="text-xs text-red-700 font-medium mt-1">全班天数</div>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <div id="stat-b-off" class="text-2xl font-bold text-emerald-600">0</div>
+                            <div class="text-xs text-emerald-700 font-medium mt-1">休假天数</div>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                            <div id="stat-b-leave" class="text-2xl font-bold text-amber-600">0</div>
+                            <div class="text-xs text-amber-700 font-medium mt-1">请假天数</div>
+                        </div>
+                        <div class="bg-sky-50 p-3 rounded-xl border border-sky-100">
+                            <div id="stat-b-swap" class="text-2xl font-bold text-sky-600">0</div>
+                            <div class="text-xs text-sky-700 font-medium mt-1">调班天数</div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Progress Bar -->
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+                            <span>全班出勤占比</span>
+                            <span id="stat-b-ratio">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex">
+                            <div id="progress-b-full" class="bg-rose-500 h-full" style="width: 0%"></div>
+                            <div id="progress-b-off" class="bg-emerald-500 h-full" style="width: 0%"></div>
+                            <div id="progress-b-leave" class="bg-amber-500 h-full" style="width: 0%"></div>
+                            <div id="progress-b-swap" class="bg-sky-500 h-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+        <p>智班云 智能自动排班管理平台 &copy; 2026. 保留所有权利。</p>
+    </footer>
+
+    <!-- Modal Dialog for Editing Day Shift (Mobile Calendar View) -->
+    <div id="modal-edit-day" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 animate-fade-in">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+                <h3 id="modal-date-title" class="font-bold text-lg text-slate-800">调整排班</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Employee A Choice -->
+                <div>
+                    <label id="modal-label-emp-a" class="block text-xs font-bold text-slate-600 mb-1">员工A 班别</label>
+                    <select id="modal-select-emp-a" onchange="onModalChange('A')" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="全班">全班 (粉底红字)</option>
+                        <option value="休假">休假 (绿底白字)</option>
+                        <option value="请假">请假 (黄底橙字)</option>
+                        <option value="调班">调班 (蓝底蓝字)</option>
+                        <option value="">未安排</option>
+                    </select>
+                </div>
+
+                <!-- Employee B Choice -->
+                <div>
+                    <label id="modal-label-emp-b" class="block text-xs font-bold text-slate-600 mb-1">员工B 班别</label>
+                    <select id="modal-select-emp-b" onchange="onModalChange('B')" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="全班">全班 (粉底红字)</option>
+                        <option value="休假">休假 (绿底白字)</option>
+                        <option value="请假">请假 (黄底橙字)</option>
+                        <option value="调班">调班 (蓝底蓝字)</option>
+                        <option value="">未安排</option>
+                    </select>
+                </div>
+
+                <div class="p-3 bg-indigo-50/60 rounded-xl text-xs text-indigo-700 leading-relaxed border border-indigo-100">
+                    💡 <strong>提示：</strong>选择全班/休假时，系统会自动联动对偶状态。选择请假/调班时解锁自由选择。
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button onclick="closeModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors">
+                    确定保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Toast Notification Box -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        // Global Application State
+        let currentYear = 2026;
+        let currentMonth = 9; // Default 9th month
+        let empAName = "员工A";
+        let empBName = "员工B";
+        let currentEditingDay = 1;
+
+        // Multi-month isolated storage: { "2026-9": { 1: { empA: "全班", empB: "休假" }, ... } }
+        let scheduleStore = {};
+
+        const SHIFT_CLASSES = {
+            '全班': 'status-full',
+            '休假': 'status-off',
+            '请假': 'status-leave',
+            '调班': 'status-swap',
+            '': 'bg-white text-slate-400 border border-slate-200'
+        };
+
+        const WEEKDAYS_CN = ['日', '一', '二', '三', '四', '五', '六'];
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            initYearMonthDropdowns();
+            renderAllViews();
+            showToast("智班云系统准备就绪", "success");
+        });
+
+        // Initialize Year & Month Dropdowns
+        function initYearMonthDropdowns() {
+            const selectYear = document.getElementById('select-year');
+            const selectMonth = document.getElementById('select-month');
+
+            selectYear.innerHTML = '';
+            for (let y = 2024; y <= 2030; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                selectYear.appendChild(opt);
+            }
+
+            selectMonth.innerHTML = '';
+            for (let m = 1; m <= 12; m++) {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                if (m === currentMonth) opt.selected = true;
+                selectMonth.appendChild(opt);
+            }
+        }
+
+        // Get key string for month storage
+        function getMonthKey() {
+            return `${currentYear}-${currentMonth}`;
+        }
+
+        // Helper: Get days count in current month
+        function getDaysInMonth(year, month) {
+            return new Date(year, month, 0).getDate();
+        }
+
+        // Get active month schedule data object
+        function getActiveMonthData() {
+            const key = getMonthKey();
+            if (!scheduleStore[key]) {
+                scheduleStore[key] = {};
+            }
+            return scheduleStore[key];
+        }
+
+        /**
+         * Core Mutual Constraint Logic:
+         * - If target worker selects "全班" -> counterpart becomes "休假"
+         * - If target worker selects "休假" -> counterpart becomes "全班"
+         * - If target worker selects "请假" or "调班" -> counterpart remains unchanged (unlocked for manual selection)
+         */
+        function handleShiftChange(day, targetWorker, newValue) {
+            const monthData = getActiveMonthData();
+            if (!monthData[day]) {
+                monthData[day] = { empA: '', empB: '' };
+            }
+
+            if (targetWorker === 'A') {
+                monthData[day].empA = newValue;
+                if (newValue === '全班') {
+                    monthData[day].empB = '休假';
+                } else if (newValue === '休假') {
+                    monthData[day].empB = '全班';
+                }
+                // '请假' or '调班' -> empB remains unlocked
+            } else if (targetWorker === 'B') {
+                monthData[day].empB = newValue;
+                if (newValue === '全班') {
+                    monthData[day].empA = '休假';
+                } else if (newValue === '休假') {
+                    monthData[day].empA = '全班';
+                }
+                // '请假' or '调班' -> empA remains unlocked
+            }
+
+            saveToLocalStorage();
+            renderAllViews();
+        }
+
+        // Auto Generator: "上一休一" Alternating Pattern
+        function autoGeneratePattern() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthData = {};
+
+            for (let d = 1; d <= daysCount; d++) {
+                if (d % 2 === 1) {
+                    monthData[d] = { empA: '全班', empB: '休假' };
+                } else {
+                    monthData[d] = { empA: '休假', empB: '全班' };
+                }
+            }
+
+            scheduleStore[getMonthKey()] = monthData;
+            saveToLocalStorage();
+            renderAllViews();
+            showToast(`已自动填充 ${currentYear}年${currentMonth}月 上一休一轮班方案`, "info");
+        }
+
+        // Clear Current Selected Month
+        function clearCurrentMonth() {
+            scheduleStore[getMonthKey()] = {};
+            saveToLocalStorage();
+            renderAllViews();
+            showToast(`已清空 ${currentYear}年${currentMonth}月 的排班数据`, "warning");
+        }
+
+        // Date dropdown change
+        function onDateChange() {
+            currentYear = parseInt(document.getElementById('select-year').value);
+            currentMonth = parseInt(document.getElementById('select-month').value);
+            renderAllViews();
+            showToast(`已切换至 ${currentYear}年${currentMonth}月`, "info");
+        }
+
+        // Relative month step switch (-1 or +1)
+        function changeMonthRelative(step) {
+            let m = currentMonth + step;
+            let y = currentYear;
+            if (m < 1) {
+                m = 12;
+                y--;
+            } else if (m > 12) {
+                m = 1;
+                y++;
+            }
+            currentYear = y;
+            currentMonth = m;
+            document.getElementById('select-year').value = currentYear;
+            document.getElementById('select-month').value = currentMonth;
+            renderAllViews();
+            showToast(`已切换至 ${currentYear}年${currentMonth}月`, "info");
+        }
+
+        // Update employee custom display names
+        function updateEmployeeNames() {
+            empAName = document.getElementById('input-emp-a').value.trim() || "员工A";
+            empBName = document.getElementById('input-emp-b').value.trim() || "员工B";
+
+            document.getElementById('label-emp-a').textContent = empAName;
+            document.getElementById('label-emp-b').textContent = empBName;
+            document.getElementById('stats-title-emp-a').textContent = `${empAName} - 月度考勤汇总`;
+            document.getElementById('stats-title-emp-b').textContent = `${empBName} - 月度考勤汇总`;
+            document.getElementById('modal-label-emp-a').textContent = `${empAName} 班别`;
+            document.getElementById('modal-label-emp-b').textContent = `${empBName} 班别`;
+
+            renderAllViews();
+            showToast("员工姓名更新成功", "success");
+        }
+
+        // Main View Rendering Pipeline
+        function renderAllViews() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthData = getActiveMonthData();
+
+            // Dynamic Header Updates
+            document.getElementById('excel-table-title').innerHTML = `
+                <i class="fa-solid fa-table text-indigo-600"></i>
+                <span>${currentYear}年${currentMonth}月 - 月度排班明细</span>
+            `;
+            document.getElementById('table-total-days-tag').textContent = `共 ${daysCount} 天`;
+            document.getElementById('mobile-month-title').textContent = `${currentYear}年${currentMonth}月`;
+
+            renderExcelGrid(daysCount, monthData);
+            renderMobileCalendar(daysCount, monthData);
+            renderStatistics(daysCount, monthData);
+        }
+
+        // 1. Render Spreadsheet Grid Table
+        function renderExcelGrid(daysCount, monthData) {
+            const headerDatesRow = document.getElementById('header-dates-row');
+            const headerWeeksRow = document.getElementById('header-weeks-row');
+            const rowEmpA = document.getElementById('row-emp-a-cells');
+            const rowEmpB = document.getElementById('row-emp-b-cells');
+
+            let datesHtml = '';
+            let weeksHtml = '';
+            let empAHtml = '';
+            let empBHtml = '';
+
+            for (let d = 1; d <= daysCount; d++) {
+                const dateObj = new Date(currentYear, currentMonth - 1, d);
+                const dayOfWeek = dateObj.getDay();
+                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                const weekText = WEEKDAYS_CN[dayOfWeek];
+
+                // Weekend highlight
+                const weekendStyle = isWeekend ? 'bg-amber-50 text-amber-700 font-bold' : '';
+
+                datesHtml += `<th class="p-2 border-r border-slate-200 min-w-[70px] ${weekendStyle}">${d}</th>`;
+                weeksHtml += `<th class="p-1 border-r border-slate-200 min-w-[70px] ${weekendStyle}">${weekText}</th>`;
+
+                const dayRecord = monthData[d] || { empA: '', empB: '' };
+                const valA = dayRecord.empA || '';
+                const valB = dayRecord.empB || '';
+
+                const classA = SHIFT_CLASSES[valA] || '';
+                const classB = SHIFT_CLASSES[valB] || '';
+
+                empAHtml += `
+                    <td class="p-1.5 border-r border-slate-200">
+                        <select onchange="handleShiftChange(${d}, 'A', this.value)" class="w-full px-1 py-1.5 rounded-lg text-xs text-center font-bold outline-none cursor-pointer transition-all ${classA}">
+                            <option value="" ${valA === '' ? 'selected' : ''}>未安排</option>
+                            <option value="全班" ${valA === '全班' ? 'selected' : ''}>全班</option>
+                            <option value="休假" ${valA === '休假' ? 'selected' : ''}>休假</option>
+                            <option value="请假" ${valA === '请假' ? 'selected' : ''}>请假</option>
+                            <option value="调班" ${valA === '调班' ? 'selected' : ''}>调班</option>
+                        </select>
+                    </td>
+                `;
+
+                empBHtml += `
+                    <td class="p-1.5 border-r border-slate-200">
+                        <select onchange="handleShiftChange(${d}, 'B', this.value)" class="w-full px-1 py-1.5 rounded-lg text-xs text-center font-bold outline-none cursor-pointer transition-all ${classB}">
+                            <option value="" ${valB === '' ? 'selected' : ''}>未安排</option>
+                            <option value="全班" ${valB === '全班' ? 'selected' : ''}>全班</option>
+                            <option value="休假" ${valB === '休假' ? 'selected' : ''}>休假</option>
+                            <option value="请假" ${valB === '请假' ? 'selected' : ''}>请假</option>
+                            <option value="调班" ${valB === '调班' ? 'selected' : ''}>调班</option>
+                        </select>
+                    </td>
+                `;
+            }
+
+            headerDatesRow.innerHTML = datesHtml;
+            headerWeeksRow.innerHTML = weeksHtml;
+            rowEmpA.innerHTML = empAHtml;
+            rowEmpB.innerHTML = empBHtml;
+        }
+
+        // 2. Render Mobile Phone Calendar Grid View
+        function renderMobileCalendar(daysCount, monthData) {
+            const gridContainer = document.getElementById('mobile-calendar-grid');
+            gridContainer.innerHTML = '';
+
+            const firstDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay();
+
+            // Offset empty slots for 1st of month
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'h-16 bg-slate-50/50 rounded-xl';
+                gridContainer.appendChild(emptyCell);
+            }
+
+            // Fill Month Days Cards
+            for (let d = 1; d <= daysCount; d++) {
+                const dayRecord = monthData[d] || { empA: '', empB: '' };
+                const valA = dayRecord.empA || '';
+                const valB = dayRecord.empB || '';
+
+                const cell = document.createElement('div');
+                cell.className = 'h-16 bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 rounded-xl p-1 flex flex-col justify-between cursor-pointer transition-all transform hover:scale-95 shadow-2xs';
+                cell.onclick = () => openModal(d);
+
+                const classA = valA ? SHIFT_CLASSES[valA] : 'bg-slate-200 text-slate-400';
+                const classB = valB ? SHIFT_CLASSES[valB] : 'bg-slate-200 text-slate-400';
+
+                cell.innerHTML = `
+                    <div class="text-[10px] font-bold text-slate-600 text-left pl-0.5">${d}</div>
+                    <div class="space-y-0.5">
+                        <div class="text-[9px] px-1 py-0.5 rounded ${classA} truncate scale-90 origin-left">
+                            ${empAName.substring(0, 2)}:${valA || '未'}
+                        </div>
+                        <div class="text-[9px] px-1 py-0.5 rounded ${classB} truncate scale-90 origin-left">
+                            ${empBName.substring(0, 2)}:${valB || '未'}
+                        </div>
+                    </div>
+                `;
+
+                gridContainer.appendChild(cell);
+            }
+        }
+
+        // 3. Render Attendance Analytics Dashboard Statistics
+        function renderStatistics(daysCount, monthData) {
+            document.getElementById('stats-total-days-a').textContent = `共 ${daysCount} 天`;
+            document.getElementById('stats-total-days-b').textContent = `共 ${daysCount} 天`;
+
+            const statsA = { '全班': 0, '休假': 0, '请假': 0, '调班': 0 };
+            const statsB = { '全班': 0, '休假': 0, '请假': 0, '调班': 0 };
+
+            for (let d = 1; d <= daysCount; d++) {
+                const rec = monthData[d];
+                if (rec) {
+                    if (statsA[rec.empA] !== undefined) statsA[rec.empA]++;
+                    if (statsB[rec.empB] !== undefined) statsB[rec.empB]++;
+                }
+            }
+
+            document.getElementById('stat-a-full').textContent = statsA['全班'];
+            document.getElementById('stat-a-off').textContent = statsA['休假'];
+            document.getElementById('stat-a-leave').textContent = statsA['请假'];
+            document.getElementById('stat-a-swap').textContent = statsA['调班'];
+
+            document.getElementById('stat-b-full').textContent = statsB['全班'];
+            document.getElementById('stat-b-off').textContent = statsB['休假'];
+            document.getElementById('stat-b-leave').textContent = statsB['请假'];
+            document.getElementById('stat-b-swap').textContent = statsB['调班'];
+
+            // Calculate ratios
+            const ratioA = ((statsA['全班'] / daysCount) * 100).toFixed(0);
+            const ratioB = ((statsB['全班'] / daysCount) * 100).toFixed(0);
+
+            document.getElementById('stat-a-ratio').textContent = `${ratioA}% (${statsA['全班']}/${daysCount}天)`;
+            document.getElementById('stat-b-ratio').textContent = `${ratioB}% (${statsB['全班']}/${daysCount}天)`;
+
+            document.getElementById('progress-a-full').style.width = `${(statsA['全班']/daysCount)*100}%`;
+            document.getElementById('progress-a-off').style.width = `${(statsA['休假']/daysCount)*100}%`;
+            document.getElementById('progress-a-leave').style.width = `${(statsA['请假']/daysCount)*100}%`;
+            document.getElementById('progress-a-swap').style.width = `${(statsA['调班']/daysCount)*100}%`;
+
+            document.getElementById('progress-b-full').style.width = `${(statsB['全班']/daysCount)*100}%`;
+            document.getElementById('progress-b-off').style.width = `${(statsB['休假']/daysCount)*100}%`;
+            document.getElementById('progress-b-leave').style.width = `${(statsB['请假']/daysCount)*100}%`;
+            document.getElementById('progress-b-swap').style.width = `${(statsB['调班']/daysCount)*100}%`;
+        }
+
+        // Tab View Switching
+        function switchMainTab(tabName) {
+            const vExcel = document.getElementById('view-excel-container');
+            const vMobile = document.getElementById('view-mobile-container');
+            const vStats = document.getElementById('view-stats-container');
+
+            const btnExcel = document.getElementById('btn-tab-excel');
+            const btnMobile = document.getElementById('btn-tab-mobile');
+            const btnStats = document.getElementById('btn-tab-stats');
+
+            vExcel.classList.add('hidden');
+            vMobile.classList.add('hidden');
+            vStats.classList.add('hidden');
+
+            btnExcel.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900';
+            btnMobile.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900';
+            btnStats.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all text-slate-600 hover:text-slate-900';
+
+            if (tabName === 'excel') {
+                vExcel.classList.remove('hidden');
+                btnExcel.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm font-bold';
+            } else if (tabName === 'mobile') {
+                vMobile.classList.remove('hidden');
+                btnMobile.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm font-bold';
+            } else if (tabName === 'stats') {
+                vStats.classList.remove('hidden');
+                btnStats.className = 'flex items-center space-x-2 px-4 py-1.5 rounded-lg transition-all bg-white text-indigo-600 shadow-sm font-bold';
+            }
+        }
+
+        // Modal Edit Dialog for Mobile Calendar
+        function openModal(day) {
+            currentEditingDay = day;
+            const monthData = getActiveMonthData();
+            const dayRecord = monthData[day] || { empA: '', empB: '' };
+
+            document.getElementById('modal-date-title').textContent = `调整排班 (${currentMonth}月${day}日)`;
+            document.getElementById('modal-select-emp-a').value = dayRecord.empA || '';
+            document.getElementById('modal-select-emp-b').value = dayRecord.empB || '';
+
+            document.getElementById('modal-edit-day').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-edit-day').classList.add('hidden');
+        }
+
+        function onModalChange(worker) {
+            const valA = document.getElementById('modal-select-emp-a').value;
+            const valB = document.getElementById('modal-select-emp-b').value;
+
+            if (worker === 'A') {
+                handleShiftChange(currentEditingDay, 'A', valA);
+            } else {
+                handleShiftChange(currentEditingDay, 'B', valB);
+            }
+
+            const updatedRecord = getActiveMonthData()[currentEditingDay] || { empA: '', empB: '' };
+            document.getElementById('modal-select-emp-a').value = updatedRecord.empA || '';
+            document.getElementById('modal-select-emp-b').value = updatedRecord.empB || '';
+        }
+
+        // Export Schedule to actual Excel (.xlsx) file
+        function exportToExcel() {
+            const daysCount = getDaysInMonth(currentYear, currentMonth);
+            const monthData = getActiveMonthData();
+
+            const rowDate = ['日期'];
+            const rowWeek = ['星期'];
+            const rowEmpA = [empAName];
+            const rowEmpB = [empBName];
+
+            for (let d = 1; d <= daysCount; d++) {
+                const dateObj = new Date(currentYear, currentMonth - 1, d);
+                rowDate.push(`${d}日`);
+                rowWeek.push(WEEKDAYS_CN[dateObj.getDay()]);
+
+                const rec = monthData[d] || { empA: '', empB: '' };
+                rowEmpA.push(rec.empA || '-');
+                rowEmpB.push(rec.empB || '-');
+            }
+
+            const wsData = [
+                [`${currentYear}年${currentMonth}月 员工值班排班明细表`],
+                [],
+                rowDate,
+                rowWeek,
+                rowEmpA,
+                rowEmpB,
+                [],
+                ['考勤与规则标识说明'],
+                ['班别类别', '标识配色说明', '互锁逻辑说明'],
+                ['全班', '粉底红字', '全天值班（两人互锁：选择全班时另一人自动为休假）'],
+                ['休假', '绿底白字', '轮休休息（两人互锁：选择休假时另一人自动为全班）'],
+                ['请假', '黄底橙字', '个人请假（另一人解锁，支持自由手动选择班别）'],
+                ['调班', '蓝底蓝字', '班别调换（另一人解锁，支持自由手动选择班别）']
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Column Width Formatting
+            const colWidths = [{ wch: 14 }];
+            for (let i = 0; i < daysCount; i++) {
+                colWidths.push({ wch: 8 });
+            }
+            ws['!cols'] = colWidths;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, `${currentMonth}月排班表`);
+
+            const fileName = `自动排班表_${currentYear}年${currentMonth}月.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            showToast(`已成功导出 ${fileName}！`, "success");
+        }
+
+        // LocalStorage Operations
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('zhibanyun_schedule_store_v2', JSON.stringify(scheduleStore));
+            } catch (e) {
+                console.error("Local storage save failed:", e);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const data = localStorage.getItem('zhibanyun_schedule_store_v2');
+                if (data) {
+                    scheduleStore = JSON.parse(data);
+                }
+            } catch (e) {
+                console.error("Local storage load failed:", e);
+                scheduleStore = {};
+            }
+        }
+
+        // Custom Toast Message System
+        function showToast(message, type = "info") {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let typeStyle = "bg-slate-800 text-white";
+            let icon = "fa-circle-info";
+
+            if (type === "success") {
+                typeStyle = "bg-emerald-600 text-white";
+                icon = "fa-circle-check";
+            } else if (type === "warning") {
+                typeStyle = "bg-amber-600 text-white";
+                icon = "fa-triangle-exclamation";
+            } else if (type === "info") {
+                typeStyle = "bg-indigo-600 text-white";
+                icon = "fa-circle-info";
+            }
+
+            toast.className = `${typeStyle} px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-semibold animate-fade-in pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
